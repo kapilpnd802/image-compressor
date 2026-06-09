@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Compressor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background: linear-gradient(180deg, #eceff1 0%, #d7dade 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .container {
+            position: relative;
+            z-index: 1;
+            background: #ffffff;
+            padding: 42px;
+            border-radius: 20px;
+            box-shadow: 0 24px 60px rgba(55, 66, 84, 0.12);
+            max-width: 520px;
+            width: 92%;
+            border: 1px solid rgba(46, 55, 68, 0.08);
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 2em;
+        }
+        
+        .upload-section {
+            border: 2px dashed #b4bac4;
+            border-radius: 18px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 200ms cubic-bezier(.2,.9,.2,1), box-shadow 200ms ease, border-color 200ms ease;
+            background: #f9fafb;
+            box-shadow: 0 10px 30px rgba(30, 38, 48, 0.07);
+            transform: translateZ(0) scale(1);
+        }
+
+        .upload-section:hover {
+            border-color: #a5abb3;
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 48px rgba(30, 38, 48, 0.12);
+        }
+
+        .upload-section:active {
+            transform: translateY(-2px) scale(0.98);
+            box-shadow: 0 8px 22px rgba(30, 38, 48, 0.08);
+        }
+        
+        .upload-section input[type="file"] {
+            display: none;
+        }
+        
+        .upload-label {
+            display: block;
+            cursor: pointer;
+            color: #667eea;
+            font-weight: 600;
+            font-size: 1.05em;
+        }
+
+        .btn {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: transform 220ms cubic-bezier(.2,.9,.2,1), box-shadow 220ms ease, opacity 150ms ease;
+            transform-origin: center bottom;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        }
+
+        .btn:focus { outline: none; }
+
+        .btn-primary {
+            background: linear-gradient(180deg, #e7e9ec, #c5c9ce);
+            color: #1f2530;
+            font-weight: 700;
+            box-shadow: 0 12px 28px rgba(35, 43, 55, 0.12);
+        }
+
+        .btn-primary:hover,
+        .btn-secondary:hover,
+        .watermark:hover {
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 22px 48px rgba(35, 43, 55, 0.14);
+        }
+
+        .btn-primary:active,
+        .btn-secondary:active,
+        .watermark:active {
+            transform: translateY(-2px) scale(0.98);
+            box-shadow: 0 8px 20px rgba(35, 43, 55, 0.08);
+        }
+
+        .btn-secondary {
+            background: #f5f7fa;
+            color: #222;
+            font-weight: 600;
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-4px) scale(1.01);
+        }
+
+        #sizeSlider {
+            width: 100%;
+            accent-color: #9aa1ab;
+            margin-top: 8px;
+        }
+
+        .watermark {
+            position: fixed;
+            right: 24px;
+            bottom: 24px;
+            z-index: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(45, 52, 63, 0.08);
+            font-size: 3rem;
+            letter-spacing: 0.5rem;
+            pointer-events: auto;
+            user-select: none;
+            transform: translateZ(0) scale(1);
+            transition: transform 200ms ease, opacity 200ms ease;
+            text-transform: none;
+            max-width: calc(100% - 48px);
+        }
+
+        .watermark span {
+            display: inline-block;
+            padding: 0 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="watermark"><span>By KapilPandit</span></div>
+    <div class="container">
+        <h1>Image Compressor</h1>
+        <div class="upload-section" id="dropZone">
+            <label for="imageUpload" class="upload-label">
+                📁 Click to upload or drag and drop
+                <br>
+                <small style="color: #999; font-weight: normal;">PNG, JPG, GIF up to 50MB</small>
+            </label>
+            <input type="file" id="imageUpload" accept="image/*">
+        </div>
+
+        <div style="margin-top:20px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <div>Original size: <strong id="originalSize">—</strong></div>
+                <div>Target: <strong id="targetSize">—</strong></div>
+            </div>
+
+            <input type="range" id="sizeSlider" min="100000" max="1000000" step="1024" disabled>
+
+            <div style="display:flex;gap:8px;margin-top:12px">
+                <button id="compressBtn" class="btn btn-primary" disabled style="flex:1">Compress</button>
+                <a id="downloadLink" class="btn btn-secondary" style="display:none;text-decoration:none;align-items:center;display:inline-flex">Download</a>
+            </div>
+
+            <div id="message" style="margin-top:12px;color:#555;font-size:0.95em"></div>
+        </div>
+    </div>
+</body>
+    <script src="app.js"></script>
+</html>
