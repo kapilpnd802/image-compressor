@@ -105,38 +105,50 @@ function handleFile(file) {
 }
 
 async function compressImageToTarget(file, targetBytes) {
-    // Load image into canvas
     const img = await loadImageFromFile(file);
-    const canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
+    let scale = 1;
+    let bestBlob = null;
 
-    // We'll convert to JPEG and binary-search quality to reach target size
+    for (let attempt = 0; attempt < 4; attempt++) {
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        const blob = compressCanvasToTarget(canvas, targetBytes);
+        if (blob) {
+            return blob;
+        }
+
+        // Reduce dimensions and retry if quality-only compression is not enough.
+        scale *= 0.85;
+        if (canvas.width < 300 || canvas.height < 300) break;
+    }
+
+    return null;
+}
+
+function compressCanvasToTarget(canvas, targetBytes) {
     let minQ = 0.05, maxQ = 0.95;
     let bestBlob = null;
 
-    for (let i = 0; i < 8; i++) { // limit iterations
+    for (let i = 0; i < 10; i++) {
         const q = (minQ + maxQ) / 2;
         const dataUrl = canvas.toDataURL('image/jpeg', q);
         const blob = dataURLToBlob(dataUrl);
+
         if (blob.size <= targetBytes) {
             bestBlob = blob;
-            // try lower quality to reduce further (but don't go below 0.05)
-            maxQ = q;
+            minQ = q; // can try higher quality while still under target
         } else {
-            // too large, reduce quality
-            minQ = q;
+            maxQ = q; // too large, lower the quality
         }
-        // small break if already very close
+
         if (bestBlob && Math.abs(bestBlob.size - targetBytes) < 1024) break;
+        if (maxQ - minQ < 0.005) break;
     }
 
-    // If bestBlob still larger than target, return null
-    if (!bestBlob) return null;
-    // Ensure at least MIN_TARGET
-    if (bestBlob.size < MIN_TARGET) return bestBlob;
     return bestBlob;
 }
 
